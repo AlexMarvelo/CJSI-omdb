@@ -1,8 +1,14 @@
 {
     "extends": "airbnb",
+    "env": {
+      "browser": true
+    },
     "plugins": [
         "import"
     ],
+    "globals": {
+      "ActiveXObject": true
+    },
     "rules": {
       "no-console": 0,
       "no-restricted-syntax": 0,
@@ -17,6 +23,7 @@
       "prefer-const": 0,
       "func-names": 0,
       "no-plusplus": 0,
-      "no-mixed-operators": 0
+      "no-mixed-operators": 0,
+      "class-methods-use-this": 0
     }
 }
