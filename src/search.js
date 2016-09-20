@@ -1,23 +1,27 @@
 import config from './config.js';
 
 export default class SearchEngine {
-  constructor(searchId, containerId) {
+  constructor(searchId, containerId, paginationId) {
     this.form = document.querySelector(`form[name="${searchId}"]`);
     if (!this.form) return;
     this.input = this.form.querySelector('input[type="search"]');
     this.searchBtn = this.form.querySelector('button[type="submit"]');
+    this.paginationContainer = document.getElementById(paginationId);
     this.container = document.getElementById(containerId);
+    this.currentPage = 0;
 
     this.form.addEventListener('submit', this.searchMovies.bind(this));
   }
 
-  searchMovies(event) {
+  searchMovies(event, page) {
+    this.currentPage = page || 1;
     if (event) event.preventDefault();
     let searchQuery = this.input.value;
     if (!searchQuery.length) return;
     let self = this;
     let queryObj = {
       s: searchQuery,
+      page: this.currentPage.toString(),
     };
     let queryString = this.convertToQueryString(queryObj);
     let promise = new Promise((resolve, reject) => {
@@ -44,16 +48,17 @@ export default class SearchEngine {
       (data) => {
         console.log(data);
         self.updateMoviesList(data);
+        self.setPagination(data.totalResults);
       },
       (error) => {
         throw new Error(error);
       }
     );
-
     promise.catch(this.pushError.bind(this));
   }
 
   updateMoviesList(data) {
+    // console.log(data);
     this.container.innerHTML = '';
     if (data.Response === 'False') {
       this.pushMessageToContainer('error', 'Sorry, movie not found');
@@ -75,7 +80,7 @@ export default class SearchEngine {
       if (!qObj.hasOwnProperty(key)) continue;
       result += `${key}=${qObj[key].replace(' ', '+')}&`;
     }
-    console.log(result);
+    // console.log(result);
     return result.slice(0, -1);
   }
 
@@ -120,6 +125,38 @@ export default class SearchEngine {
     cardEl.appendChild(caption);
     cardContainer.appendChild(cardEl);
     this.container.appendChild(cardContainer);
+  }
+
+  setPagination(totalCardsAmount) {
+    // this.paginationContainer
+    let list = this.paginationContainer.querySelector('ul.pagination');
+    if (!list) {
+      list = document.createElement('UL');
+      list.classList.add('pagination');
+      list.addEventListener('click', (event) => {
+        this.searchMovies(event, parseInt(event.target.dataset.id, 10));
+      });
+      this.paginationContainer.appendChild(list);
+    }
+    list.innerHTML = '';
+    let totalPagesAmount = Math.ceil(totalCardsAmount / config.cardsPerPage);
+    if (totalPagesAmount < 2) return;
+    for (let i = 1; i <= totalPagesAmount; i++) {
+      if (Math.abs(i - 1) > 4 &&
+          Math.abs(i - this.currentPage) > 4 &&
+          Math.abs(i - totalPagesAmount) > 4) continue;
+      let item = document.createElement('LI');
+      if ((Math.abs(i - 1) === 4 && Math.abs(1 - this.currentPage) > 8) ||
+      (Math.abs(i - totalPagesAmount) === 4 && Math.abs(totalPagesAmount - this.currentPage) > 8)) {
+        item.classList.add('disabled');
+        item.innerHTML = '<a href="#">...</a>';
+        list.appendChild(item);
+        continue;
+      }
+      if (i === this.currentPage) item.classList.add('active');
+      item.innerHTML = `<a href="#" data-id="${i}">${i}</a>`;
+      list.appendChild(item);
+    }
   }
 
   pushMessageToContainer(type, message) {
