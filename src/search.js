@@ -4,8 +4,10 @@ export default class SearchEngine {
   constructor(searchId, containerId, paginationId) {
     this.form = document.querySelector(`form[name="${searchId}"]`);
     if (!this.form) return;
-    this.input = this.form.querySelector('input[type="search"]');
+    this.input = this.form.querySelector('input[name="search"]');
     this.searchBtn = this.form.querySelector('button[type="submit"]');
+    this.yearInput = this.form.querySelector('input[name="year"]');
+    this.typeInput = this.form.querySelector('input[name="type"]');
     this.paginationContainer = document.getElementById(paginationId);
     this.container = document.getElementById(containerId);
     this.currentPage = 0;
@@ -23,6 +25,12 @@ export default class SearchEngine {
       s: searchQuery,
       page: this.currentPage.toString(),
     };
+    if (this.typeInput && this.typeInput.value.length) {
+      queryObj.type = this.typeInput.value.toLowerCase();
+    }
+    if (this.typeInput && this.yearInput.value.length) {
+      queryObj.y = this.yearInput.value.toLowerCase();
+    }
     let queryString = this.convertToQueryString(queryObj);
     let promise = new Promise((resolve, reject) => {
       let httpRequest;
@@ -46,7 +54,7 @@ export default class SearchEngine {
       httpRequest.send();
     }).then(
       (data) => {
-        console.log(data);
+        // console.log(data);
         self.updateMoviesList(data);
         self.setPagination(data.totalResults);
       },

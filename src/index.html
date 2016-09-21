@@ -59,11 +59,29 @@
 
             <div class="row">
               <div class="col-sm-10 col-sm-push-1">
-                <form action="#" class="input-group input-group-lg" name="search-group">
-                  <input type="search" class="form-control" placeholder="Search for..." maxlength="300">
-                  <span class="input-group-btn">
-                    <button class="btn btn-default" type="submit">Search!</button>
-                  </span>
+                <form action="#" name="search-group">
+                  <div class="input-group input-group-lg input-group-search">
+                    <input name="search" type="search" class="form-control" placeholder="Search for..." maxlength="300">
+                    <span class="input-group-btn">
+                      <button class="btn btn-default" type="submit">Search!</button>
+                    </span>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-sm-6">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-addon" id="basic-addon1">Year filter:</span>
+                        <input name="year" type="number" class="form-control" placeholder="Year" min="1700" max="2020">
+                      </div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-addon" id="basic-addon1">Type filter:</span>
+                        <input name="type" type="text" class="form-control" placeholder="Type (movie, series, episode, game)">
+                      </div>
+                    </div>
+                  </div>
+
                 </form>
               </div>
             </div>
