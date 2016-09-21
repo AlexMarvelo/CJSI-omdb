@@ -1,3 +1,8 @@
 import SearchEngine from './search.js';
 
-const search = new SearchEngine('search-group', 'movies-container', 'pagination-container');
+const movieSearch = new SearchEngine({
+  searchBlockId: 'search-group',
+  moviesContainerId: 'movies-container',
+  favMoviesContainerId: 'movies-container-favourite',
+  paginationId: 'pagination-container',
+});

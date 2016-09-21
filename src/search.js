@@ -1,18 +1,46 @@
 import config from './config.js';
 
 export default class SearchEngine {
-  constructor(searchId, containerId, paginationId) {
-    this.form = document.querySelector(`form[name="${searchId}"]`);
+  constructor(setup) {
+    this.form = document.querySelector(`form[name="${setup.searchBlockId}"]`);
     if (!this.form) return;
     this.input = this.form.querySelector('input[name="search"]');
     this.searchBtn = this.form.querySelector('button[type="submit"]');
     this.yearInput = this.form.querySelector('input[name="year"]');
     this.typeInput = this.form.querySelector('input[name="type"]');
-    this.paginationContainer = document.getElementById(paginationId);
-    this.container = document.getElementById(containerId);
+    this.paginationContainer = document.getElementById(setup.paginationId);
+    this.container = document.getElementById(setup.moviesContainerId);
+    this.favContainer = document.getElementById(setup.favMoviesContainerId);
     this.currentPage = 0;
+    this.favList = [];
 
     this.form.addEventListener('submit', this.searchMovies.bind(this));
+
+    this.container.addEventListener('click', this.handleFavourite.bind(this));
+    this.favContainer.addEventListener('click', this.handleFavourite.bind(this));
+  }
+
+  handleFavourite(event) {
+    event.preventDefault();
+    if (!event.target.classList.contains('btn-favourite') &&
+        !event.target.classList.contains('btn-favourite-text') &&
+        !event.target.classList.contains('glyphicon-star')) return;
+    let card = findAncestor(event.target, 'thumbnail');
+    if (!card || !card.dataset.id) return;
+    if (!card.classList.contains('thumbnail-favourite')) {
+      card.classList.add('thumbnail-favourite');
+      let queryObj = {
+        i: card.dataset.id,
+      };
+      let queryString = this.convertToQueryString(queryObj);
+      this.handleQuery(queryString);
+    } else {
+      card.classList.remove('thumbnail-favourite');
+      let movieIndex = this.inFavourites(card.dataset.id);
+      if (card.dataset.id && movieIndex !== -1) {
+        this.favList.splice(movieIndex, 1);
+      }
+    }
   }
 
   searchMovies(event, page) {
@@ -20,7 +48,6 @@ export default class SearchEngine {
     if (event) event.preventDefault();
     let searchQuery = this.input.value;
     if (!searchQuery.length) return;
-    let self = this;
     let queryObj = {
       s: searchQuery,
       page: this.currentPage.toString(),
@@ -32,6 +59,12 @@ export default class SearchEngine {
       queryObj.y = this.yearInput.value.toLowerCase();
     }
     let queryString = this.convertToQueryString(queryObj);
+    this.handleQuery(queryString);
+  }
+
+  handleQuery(queryString) {
+    if (!queryString.length) return;
+    let self = this;
     let promise = new Promise((resolve, reject) => {
       let httpRequest;
       if (window.XMLHttpRequest) { // Mozilla, Safari, IE7+ ...
@@ -55,6 +88,14 @@ export default class SearchEngine {
     }).then(
       (data) => {
         // console.log(data);
+        if (data.Response === 'False') {
+          this.pushMessageToContainer('error', 'Sorry, movie not found');
+          return;
+        }
+        if (!data.Search) {
+          self.favList.push(data);
+          return;
+        }
         self.updateMoviesList(data);
         self.setPagination(data.totalResults);
       },
@@ -66,12 +107,10 @@ export default class SearchEngine {
   }
 
   updateMoviesList(data) {
-    // console.log(data);
     this.container.innerHTML = '';
-    if (data.Response === 'False') {
-      this.pushMessageToContainer('error', 'Sorry, movie not found');
-      return;
-    }
+    this.favList.forEach((movie) => {
+      this.pushMovieCardToContainer(movie, true);
+    });
     data.Search.forEach((movie) => {
       this.pushMovieCardToContainer(movie);
     });
@@ -92,15 +131,17 @@ export default class SearchEngine {
     return result.slice(0, -1);
   }
 
-  pushMovieCardToContainer(card) {
+  pushMovieCardToContainer(card, favourite = false) {
+    if (!favourite && this.inFavourites(card.imdbID) !== -1) return;
+    favourite = favourite && (this.inFavourites(card.imdbID) !== -1);
     let cardContainer = document.createElement('DIV');
-    cardContainer.classList.add('movie-card');
-    cardContainer.classList.add('col-sm-6');
-    cardContainer.classList.add('col-md-4');
-    cardContainer.classList.add('col-lg-3');
+    cardContainer.classList.add('movie-card', 'col-sm-6', 'col-md-4', 'col-lg-3');
     let cardEl = document.createElement('DIV');
     cardEl.classList.add('thumbnail');
-    if (card.imdbID) cardEl.setAttribute('data-id', card.imdbID);
+    if (card.imdbID) {
+      cardEl.setAttribute('data-id', card.imdbID);
+      if (favourite) cardEl.classList.add('thumbnail-favourite');
+    }
     if (card.Poster) {
       let img = document.createElement('IMG');
       if (card.Poster === 'N/A') {
@@ -130,8 +171,19 @@ export default class SearchEngine {
       type.classList.add('badge');
       caption.appendChild(type);
     }
+    let favBtn = document.createElement('BUTTON');
+    favBtn.classList.add('btn', 'btn-default', 'btn-favourite');
+    favBtn.setAttribute('type', 'button');
+    favBtn.innerHTML = `<span class="glyphicon glyphicon-star" aria-hidden="true"></span>
+    <span class="btn-favourite-text btn-favourite-text-add">Add to favourites</span>
+    <span class="btn-favourite-text btn-favourite-text-remove">Remove from favourites</span>`;
+    caption.appendChild(favBtn);
     cardEl.appendChild(caption);
     cardContainer.appendChild(cardEl);
+    if (favourite) {
+      this.container.insertBefore(cardContainer, this.container.firstChild);
+      return;
+    }
     this.container.appendChild(cardContainer);
   }
 
@@ -168,6 +220,9 @@ export default class SearchEngine {
   }
 
   pushMessageToContainer(type, message) {
+    this.container.innerHTML = '';
+    this.favContainer.innerHTML = '';
+    this.paginationContainer.innerHTML = '';
     let alertBlock = document.createElement('DIV');
     alertBlock.classList.add('alert');
     alertBlock.classList.add('col-sm-6');
@@ -189,4 +244,21 @@ export default class SearchEngine {
     alertBlock.appendChild(document.createTextNode(error));
     alertContainer.appendChild(alertBlock);
   }
+
+  inFavourites(movieId) {
+    let movieIndex = -1;
+    this.favList.forEach((movie, index) => {
+      if (movie.imdbID === movieId) {
+        movieIndex = index;
+      }
+    });
+    return movieIndex;
+  }
+}
+
+function findAncestor(el, cls) {
+  while (!el.classList.contains(cls)) {
+    el = el.parentElement;
+  }
+  return el;
 }

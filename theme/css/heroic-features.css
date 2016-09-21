@@ -30,7 +30,27 @@ h1 {
 }
 
 .input-group-search {
-  margin-bottom: 20px; 
+  margin-bottom: 20px;
+}
+
+.btn-favourite {
+  margin-top: 12px;
+}
+
+.thumbnail-favourite {
+  background: rgba(255, 255, 0, 0.12);
+}
+
+.btn-favourite-text-remove {
+  display: none;
+}
+
+.thumbnail-favourite .btn-favourite-text-remove {
+  display: inline;
+}
+
+.thumbnail-favourite .btn-favourite-text-add{
+  display: none;
 }
 
 @media (min-width: 1200px) {
