@@ -6,6 +6,7 @@ Hometask for Ciklum JS Internship Lesson 4
 ##### List of used technologies:
 - es6 (with Babel transpiler)
 - eslint (airbnb preset)
+- webpack
 
 ---
 
